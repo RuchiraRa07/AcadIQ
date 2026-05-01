@@ -1,0 +1,10 @@
+venv/ 
+__pycache__/ 
+*.pyc 
+*.pkl 
+data/students.db 
+data/reports/ 
+.env 
+*.bat 
+ngrok.exe 
+ngrok 

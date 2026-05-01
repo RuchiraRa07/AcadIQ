@@ -1,0 +1,8 @@
+flask
+flask-cors
+pandas
+numpy
+scipy
+scikit-learn
+fpdf2
+openpyxl
