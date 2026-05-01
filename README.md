@@ -1,4 +1,4 @@
-# 🎓 Student Result Processing API with Analytics
+# 🎓 AcadIQ — Smart Student Analytics System
 
 A full-stack REST API built with Python and Flask that processes student academic results, performs statistical analysis, predicts student performance using Machine Learning, and generates professional reports.
 
