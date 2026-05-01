@@ -2,8 +2,6 @@
 
 A full-stack REST API built with Python and Flask that processes student academic results, performs statistical analysis, predicts student performance using Machine Learning, and generates professional reports.
 
-> Built as part of academic project submission | May 2026
-
 ---
 
 ## 🚀 Features
