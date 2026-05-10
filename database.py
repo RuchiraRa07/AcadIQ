@@ -19,7 +19,8 @@ def init_db():
             name TEXT NOT NULL,
             roll_number TEXT UNIQUE NOT NULL,
             department TEXT NOT NULL,
-            semester INTEGER NOT NULL
+            semester INTEGER NOT NULL,
+            section TEXT NOT NULL DEFAULT 'A'
         )
     ''')
 

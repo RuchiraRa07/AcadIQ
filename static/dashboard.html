@@ -7,10 +7,11 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
     <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body { overflow-x: hidden; max-width: 100vw; }
     body { font-family: 'Segoe UI', sans-serif; background: #f5f0eb; color: #2d2040; display: flex; min-height: 100vh; }
 
     /* Sidebar */
-    .sidebar { width: 220px; background: #2d2040; padding: 24px 0; display: flex; flex-direction: column; position: fixed; height: 100vh; z-index: 100; }
+    .sidebar { width: 220px; background: #2d2040; padding: 24px 0; display: flex; flex-direction: column; position: fixed; height: 100vh; z-index: 100; overflow-y: auto; scrollbar-width: none; }
     .sidebar-logo { padding: 0 20px 24px; border-bottom: 1px solid #3d2d55; }
     .sidebar-logo h2 { font-size: 16px; font-weight: 700; color: #c9a96e; }
     .sidebar-logo p { font-size: 11px; color: #9d8ab0; margin-top: 2px; }
@@ -21,7 +22,7 @@
     .nav-section { font-size: 10px; color: #6b5a80; padding: 16px 20px 6px; text-transform: uppercase; letter-spacing: 1px; }
 
     /* Main */
-    .main { margin-left: 220px; flex: 1; padding: 28px 32px; min-height: 100vh; background: #f5f0eb; }
+    .main { margin-left: 220px; flex: 1; width: calc(100% - 220px); padding: 16px 24px; min-height: 100vh; background: #f5f0eb; }
     .page { display: none; }
     .page.active { display: block; }
     .page-header { margin-bottom: 24px; }
@@ -29,7 +30,7 @@
     .page-header p { font-size: 13px; color: #7a6a8a; margin-top: 4px; }
 
     /* Cards */
-    .stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 24px; }
+    .stats-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 16px; margin-bottom: 24px; }
     .stat-card { background: #ffffff; border-radius: 12px; padding: 20px; border-left: 4px solid; box-shadow: 0 2px 8px rgba(45,32,64,0.08); }
     .stat-card.blue { border-color: #7c5cbf; }
     .stat-card.green { border-color: #8b7355; }
@@ -47,6 +48,25 @@
     .card { background: #ffffff; border-radius: 12px; padding: 20px; box-shadow: 0 2px 8px rgba(45,32,64,0.08); }
     .card h3 { font-size: 14px; font-weight: 600; color: #5a4570; margin-bottom: 16px; padding-bottom: 10px; border-bottom: 1px solid #e8e0f0; }
     .chart-container { position: relative; height: 220px; }
+
+    /* Tab switcher inside Students */
+    .tab-bar { display: flex; gap: 4px; background: #f0e8f8; border-radius: 10px; padding: 4px; margin-bottom: 20px; width: fit-content; }
+    .tab-btn { padding: 8px 20px; border-radius: 8px; border: none; background: transparent; font-size: 13px; font-weight: 500; color: #7a6a8a; cursor: pointer; transition: all 0.2s; }
+    .tab-btn.active { background: #ffffff; color: #7c5cbf; box-shadow: 0 1px 4px rgba(45,32,64,0.12); font-weight: 600; }
+    .tab-content { display: none; }
+    .tab-content.active { display: block; }
+
+    /* Sections overview inside students */
+    .sections-overview { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 12px; margin-bottom: 20px; }
+    .section-mini-card { background: #fff; border-radius: 10px; padding: 16px; border-left: 4px solid #a67cc5; box-shadow: 0 2px 8px rgba(45,32,64,0.08); cursor: pointer; transition: all 0.2s; }
+    .section-mini-card:hover { transform: translateY(-2px); box-shadow: 0 4px 16px rgba(45,32,64,0.14); border-color: #7c5cbf; }
+    .section-mini-card .stat-value { font-size: 22px; color: #a67cc5; }
+    .section-mini-card .stat-label { font-size: 11px; color: #9d8ab0; }
+
+    /* Section filters */
+    .section-filters { display: flex; gap: 16px; align-items: flex-end; margin-bottom: 16px; padding: 16px; background: #f5f0eb; border-radius: 10px; }
+    .filter-group label { display: block; font-size: 11px; color: #7a6a8a; margin-bottom: 4px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
+    .section-count-label { font-size: 13px; color: #7a6a8a; padding-bottom: 6px; }
 
     /* Table */
     .table-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
@@ -129,7 +149,7 @@
     .loading { text-align: center; padding: 40px; color: #9d8ab0; font-size: 13px; }
     .empty { text-align: center; padding: 40px; color: #9d8ab0; font-size: 13px; }
     select.form-input { cursor: pointer; }
-</style>
+    </style>
 </head>
 <body>
 
@@ -174,21 +194,79 @@
         </div>
     </div>
 
-    <!-- STUDENTS PAGE -->
+    <!-- STUDENTS PAGE (with Sections tab built in) -->
     <div class="page" id="page-students">
         <div class="page-header">
             <h1>Students</h1>
-            <p>Manage all student records</p>
+            <p>Manage student records and browse by section</p>
         </div>
-        <div class="card">
-            <div class="table-header">
-                <input class="search-input" placeholder="🔍 Search students..." oninput="filterStudents(this.value)">
-                <button class="btn btn-primary" onclick="openStudentModal()">+ Add Student</button>
+
+        <!-- Tab bar -->
+        <div class="tab-bar">
+            <button class="tab-btn active" onclick="switchStudentTab('all', this)">👥 All Students</button>
+            <button class="tab-btn" onclick="switchStudentTab('sections', this)">🏫 Sections</button>
+        </div>
+
+        <!-- ALL STUDENTS TAB -->
+        <div class="tab-content active" id="tab-all">
+            <div class="card">
+                <div class="table-header">
+                    <input class="search-input" placeholder="🔍 Search students..." oninput="filterStudents(this.value)">
+                    <button class="btn btn-primary" onclick="openStudentModal()">+ Add Student</button>
+                </div>
+                <table>
+                    <thead><tr><th>ID</th><th>Name</th><th>Roll No</th><th>Department</th><th>Semester</th><th>Actions</th></tr></thead>
+                    <tbody id="students-table"><tr><td colspan="6" class="loading">Loading...</td></tr></tbody>
+                </table>
             </div>
-            <table>
-                <thead><tr><th>ID</th><th>Name</th><th>Roll No</th><th>Department</th><th>Semester</th><th>Actions</th></tr></thead>
-                <tbody id="students-table"><tr><td colspan="6" class="loading">Loading...</td></tr></tbody>
-            </table>
+        </div>
+
+        <!-- SECTIONS TAB -->
+        <div class="tab-content" id="tab-sections">
+            <!-- Mini section summary cards -->
+            <div class="sections-overview" id="sections-overview">
+                <div class="loading">Loading sections...</div>
+            </div>
+
+            <!-- Filters -->
+            <div class="card">
+                <div class="section-filters">
+                    <div class="filter-group">
+                        <label>Semester</label>
+                        <select class="form-input" id="filter-semester" onchange="loadSectionStudents()" style="width:140px; padding:6px 10px;">
+                            <option value="3">Semester 3</option>
+                            <option value="4">Semester 4</option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <label>Section</label>
+                        <select class="form-input" id="filter-section" onchange="loadSectionStudents()" style="width:140px; padding:6px 10px;">
+                            <option value="A">Section A</option>
+                            <option value="B">Section B</option>
+                            <option value="C">Section C</option>
+                        </select>
+                    </div>
+                    <span id="section-count" class="section-count-label"></span>
+                </div>
+
+                <h3 id="section-title" style="margin-bottom:12px; font-size:14px; color:#5a4570;"></h3>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Roll No</th>
+                            <th>Name</th>
+                            <th>Percentage</th>
+                            <th>Grade</th>
+                            <th>Strongest Subject</th>
+                            <th>Weakest Subject</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody id="section-table">
+                        <tr><td colspan="7" class="loading">Loading...</td></tr>
+                    </tbody>
+                </table>
+            </div>
         </div>
     </div>
 
@@ -277,7 +355,7 @@
         </div>
     </div>
 
-</div>
+</div><!-- end .main -->
 
 <!-- Student Modal -->
 <div class="modal-overlay" id="student-modal">
@@ -368,6 +446,15 @@ function navigate(page) {
     if (page === 'reports') loadReportStudents();
 }
 
+// ─── Student Tab Switcher ─────────────────────────────────
+function switchStudentTab(tab, btn) {
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById(`tab-${tab}`).classList.add('active');
+    if (tab === 'sections') loadSections();
+}
+
 // ─── Toast ────────────────────────────────────────────────
 function showToast(msg, type = 'success') {
     const t = document.getElementById('toast');
@@ -417,8 +504,8 @@ function drawSubjChart(avgs) {
     if (subjChart) subjChart.destroy();
     subjChart = new Chart(document.getElementById('subjChart'), {
         type: 'bar',
-        data: { labels: Object.keys(avgs), datasets: [{ data: Object.values(avgs), backgroundColor: ['#2980b9','#27ae60','#8e44ad','#e67e22'], borderRadius: 6, borderWidth: 0 }] },
-        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, max: 100, ticks: { color: '#64748b' }, grid: { color: '#263348' } }, x: { ticks: { color: '#64748b' }, grid: { display: false } } } }
+        data: { labels: Object.keys(avgs), datasets: [{ data: Object.values(avgs), backgroundColor: ['#2980b9','#27ae60','#8e44ad','#e67e22','#c9a96e','#a67cc5','#8b7355','#7c5cbf'], borderRadius: 6, borderWidth: 0 }] },
+        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, max: 100, ticks: { color: '#7a6a8a' }, grid: { color: '#e8e0f0' } }, x: { ticks: { color: '#7a6a8a' }, grid: { display: false } } } }
     });
 }
 
@@ -430,10 +517,10 @@ async function drawLeaderboard(lb) {
         const grade = d.grade || 'B';
         const gc = {'O':'badge-O','A+':'badge-Ap','A':'badge-A','B+':'badge-Bp','B':'badge-B','C':'badge-C','F':'badge-F'}[grade] || 'badge-B';
         return `<div class="lb-row">
-            <div style="text-align:center; font-size:${s.rank<=3?'20':'14'}px; font-weight:700; color:${s.rank===1?'#f1c40f':s.rank===2?'#bdc3c7':s.rank===3?'#cd7f32':'#64748b'}">${s.rank<=3?icons[s.rank-1]:'#'+s.rank}</div>
+            <div style="text-align:center; font-size:${s.rank<=3?'20':'14'}px; font-weight:700; color:${s.rank===1?'#f1c40f':s.rank===2?'#bdc3c7':s.rank===3?'#cd7f32':'#7a6a8a'}">${s.rank<=3?icons[s.rank-1]:'#'+s.rank}</div>
             <div><div style="font-weight:600;font-size:13px">${s.name}</div><div class="progress-bar"><div class="progress-fill" style="width:${s.percentage}%"></div></div></div>
             <div style="text-align:center;font-weight:600">${s.percentage}%</div>
-            <div style="text-align:center;color:#64748b">${s.percentile}th</div>
+            <div style="text-align:center;color:#9d8ab0">${s.percentile}th</div>
             <div style="text-align:center"><span class="badge ${gc}">${grade}</span></div>
         </div>`;
     }));
@@ -456,7 +543,7 @@ function renderStudentsTable(students) {
             <td><strong>${s.name}</strong></td>
             <td>${s.roll_number}</td>
             <td>${s.department}</td>
-            <td>Sem ${s.semester}</td>
+            <td>Sem ${s.semester} — ${s.section || 'A'}</td>
             <td>
                 <button class="action-btn btn-edit" onclick="openStudentModal(${JSON.stringify(s).replace(/"/g,'&quot;')})">✏ Edit</button>
                 <button class="action-btn btn-delete" onclick="confirmDelete('student', ${s.id})">🗑 Delete</button>
@@ -504,7 +591,7 @@ function renderResultsTable(results) {
     document.getElementById('results-table').innerHTML = results.map(r => {
         const pct = Math.round((r.marks / r.max_marks) * 100);
         return `<tr>
-            <td><strong>${r.name}</strong><br><span style="color:#64748b;font-size:11px">${r.roll_number}</span></td>
+            <td><strong>${r.name}</strong><br><span style="color:#9d8ab0;font-size:11px">${r.roll_number}</span></td>
             <td>${r.subject}</td>
             <td>${r.marks}</td>
             <td>${r.max_marks}</td>
@@ -598,7 +685,7 @@ async function runPrediction() {
     const res = await fetch(`${API}/predict/student/${id}`);
     const d = await res.json();
     if (!res.ok) { showToast(d.error || 'Prediction failed', 'error'); return; }
-    const color = d.at_risk ? '#e74c3c' : '#27ae60';
+    const color = d.at_risk ? '#c0392b' : '#27ae60';
     document.getElementById('predict-result').innerHTML = `
         <div class="predict-stat"><span>Predicted Percentage</span><strong>${d.predicted_percentage}%</strong></div>
         <div class="predict-stat"><span>Risk Label</span><strong style="color:${color}">${d.risk_label}</strong></div>
@@ -619,9 +706,9 @@ async function loadAllPredictions() {
         const d = await r.json();
         if (d.error) return '';
         const rc = d.at_risk ? 'risk-HIGH' : 'risk-LOW';
-        return `<div style="display:flex;justify-content:space-between;align-items:center;padding:10px 14px;background:#263348;border-radius:8px;margin-bottom:6px;font-size:13px;">
+        return `<div style="display:flex;justify-content:space-between;align-items:center;padding:10px 14px;background:#f5f0eb;border-radius:8px;margin-bottom:6px;font-size:13px;border:1px solid #e8e0f0;">
             <span><strong>${s.name}</strong> (${s.roll_number})</span>
-            <span>${d.predicted_percentage}%</span>
+            <span style="color:#5a4570;font-weight:600;">${d.predicted_percentage}%</span>
             <span class="badge ${rc}">${d.risk_label}</span>
         </div>`;
     }));
@@ -633,15 +720,18 @@ async function loadAtRisk() {
     const res = await fetch(`${API}/analytics/at-risk`);
     const data = await res.json();
     const c = document.getElementById('atrisk-content');
-    if (!data.students.length) { c.innerHTML = '<div class="card"><div class="empty">✅ No at-risk students! Everyone is performing well.</div></div>'; return; }
-    c.innerHTML = `<div class="card"><h3>⚠️ ${data.total_at_risk} student(s) need attention</h3>${data.students.map(s => `
-        <div style="background:#1a1a2e;border:1px solid #7f1d1d;border-radius:10px;padding:16px;margin-bottom:12px;display:flex;justify-content:space-between;align-items:center;">
+    if (!data.students.length) {
+        c.innerHTML = '<div class="card"><div class="empty">✅ No at-risk students! Everyone is performing well.</div></div>';
+        return;
+    }
+    c.innerHTML = `<div class="card"><h3>⚠️ ${data.total_at_risk} student(s) need attention</h3><br>${data.students.map(s => `
+        <div style="background:#fef5f5;border:1px solid #f5c6c6;border-radius:10px;padding:16px;margin-bottom:12px;display:flex;justify-content:space-between;align-items:center;">
             <div>
-                <div style="font-weight:600;margin-bottom:4px;">${s.name} <span style="color:#64748b;font-size:12px">(${s.roll_number})</span></div>
-                <div style="font-size:12px;color:#94a3b8;">${s.risk_reasons.join(' · ')}</div>
+                <div style="font-weight:600;margin-bottom:4px;color:#2d2040;">${s.name} <span style="color:#9d8ab0;font-size:12px">(${s.roll_number})</span></div>
+                <div style="font-size:12px;color:#7a6a8a;">${s.risk_reasons.join(' · ')}</div>
             </div>
             <div style="text-align:right">
-                <div style="font-size:20px;font-weight:700;color:#e74c3c;">${s.overall_percentage}%</div>
+                <div style="font-size:20px;font-weight:700;color:#c0392b;">${s.overall_percentage}%</div>
                 <span class="badge risk-${s.risk_level}">${s.risk_level}</span>
             </div>
         </div>`).join('')}</div>`;
@@ -665,6 +755,77 @@ function downloadPDF() {
 function downloadExcel() {
     window.open(`${API}/reports/excel`, '_blank');
     showToast('Downloading Excel...');
+}
+
+// ─── SECTIONS (now inside Students tab) ───────────────────
+async function loadSections() {
+    const res = await fetch(`${API}/students/sections/summary`);
+    const data = await res.json();
+
+    document.getElementById('sections-overview').innerHTML = data.sections.map(s => `
+        <div class="section-mini-card" onclick="jumpToSection(${s.semester}, '${s.section}')">
+            <div class="stat-value">${s.student_count}</div>
+            <div class="stat-label">Sem ${s.semester} — Section ${s.section}</div>
+        </div>
+    `).join('');
+
+    loadSectionStudents();
+}
+
+function jumpToSection(semester, section) {
+    document.getElementById('filter-semester').value = semester;
+    document.getElementById('filter-section').value = section;
+    loadSectionStudents();
+}
+
+async function loadSectionStudents() {
+    const semester = document.getElementById('filter-semester').value;
+    const section = document.getElementById('filter-section').value;
+
+    document.getElementById('section-title').textContent = `Semester ${semester} — Section ${section}`;
+    document.getElementById('section-table').innerHTML = '<tr><td colspan="7" class="loading">Loading...</td></tr>';
+
+    const res = await fetch(`${API}/students/section/${semester}/${section}`);
+    const data = await res.json();
+
+    document.getElementById('section-count').textContent = `${data.total} students found`;
+
+    if (!data.students.length) {
+        document.getElementById('section-table').innerHTML = '<tr><td colspan="7" class="empty">No students found</td></tr>';
+        return;
+    }
+
+    const rows = await Promise.all(data.students.map(async s => {
+        const r = await fetch(`${API}/analytics/student/${s.id}`);
+        const analytics = await r.json();
+
+        if (analytics.error) {
+            return `<tr>
+                <td>${s.roll_number}</td>
+                <td><strong>${s.name}</strong></td>
+                <td colspan="5" style="color:#9d8ab0;">No results yet</td>
+            </tr>`;
+        }
+
+        const gc = {'O':'badge-O','A+':'badge-Ap','A':'badge-A','B+':'badge-Bp','B':'badge-B','C':'badge-C','F':'badge-F'}[analytics.grade] || 'badge-B';
+        const status = analytics.percentage < 50 ?
+            '<span class="badge risk-HIGH">At Risk</span>' :
+            analytics.percentage < 60 ?
+            '<span class="badge risk-MEDIUM">Watch</span>' :
+            '<span class="badge risk-LOW">Good</span>';
+
+        return `<tr>
+            <td>${s.roll_number}</td>
+            <td><strong>${s.name}</strong></td>
+            <td><strong>${analytics.percentage}%</strong></td>
+            <td><span class="badge ${gc}">${analytics.grade}</span></td>
+            <td style="color:#27ae60">✓ ${analytics.strongest_subject}</td>
+            <td style="color:#c0392b">✗ ${analytics.weakest_subject}</td>
+            <td>${status}</td>
+        </tr>`;
+    }));
+
+    document.getElementById('section-table').innerHTML = rows.join('');
 }
 
 // ─── INIT ─────────────────────────────────────────────────
